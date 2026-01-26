@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "209528512712",
+    "project_id": "whobabylike-f9525",
+    "storage_bucket": "whobabylike-f9525.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:209528512712:android:1894e522a9fc2fa0b505fd",
+        "android_client_info": {
+          "package_name": "ru.whobabylike.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJARXM-h7hfBC-4tY8DqOMQHu73IDBNaA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
