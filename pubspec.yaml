@@ -30,6 +30,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+      # RevenueCat для покупок (ДОБАВЬТЕ ЭТУ СТРОЧКУ)
+  purchases_flutter: ^9.10.7
+  purchases_ui_flutter: ^9.10.7  # UI компоненты
   
   # Firebase Core (ДОБАВЬТЕ ЭТУ СТРОЧКУ)
   firebase_core: ^2.24.0
@@ -77,6 +81,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # ДОБАВЬТЕ ЭТОТ РАЗДЕЛ:
+  assets:
+    - .env  # Добавляем .env файл в assets
 
   # To add assets to your application, add an assets section, like this:
   # assets:

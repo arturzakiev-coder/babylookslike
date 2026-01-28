@@ -41,7 +41,27 @@ class FirebaseService with ChangeNotifier {
       }
     }
   }
-  
+  // lib/services/firebase_service.dart - ДОБАВЬТЕ ЭТОТ МЕТОД
+Future<void> addPurchasedAttempts(int attemptsToAdd) async {
+    try {
+      if (!_initialized) {
+        await initialize();
+      }
+
+      final deviceId = await _getOrCreateDeviceId();
+      final docRef = _firestore.collection('balances').doc(deviceId);
+
+      await docRef.update({
+        'purchasedAttempts': FieldValue.increment(attemptsToAdd),
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
+
+      print('✅ Added $attemptsToAdd purchased attempts for device: $deviceId');
+    } catch (e) {
+      print('❌ Error adding purchased attempts: $e');
+      rethrow;
+    }
+  }
   // Метод 1: Получение/создание deviceId (упрощенный для web)
   Future<String> _getOrCreateDeviceId() async {
     if (kIsWeb) {

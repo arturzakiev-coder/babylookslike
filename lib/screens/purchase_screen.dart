@@ -1,456 +1,349 @@
+// lib/screens/purchase_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/attempt_service_cloud.dart'; // <-- ИЗМЕНИТЬ ИМПОРТ
+import 'package:purchases_flutter/purchases_flutter.dart';
+import '../services/revenuecat_service.dart';
 
-class PurchaseScreen extends StatelessWidget {
-  final List<Map<String, dynamic>> packages = [
-    {
-      'name': 'МИНИ',
-      'attempts': 10,
-      'price': 99,
-      'perAttempt': 9.9,
-      'popular': false,
-    },
-    {
-      'name': 'СТАНДАРТ',
-      'attempts': 30,
-      'price': 249,
-      'perAttempt': 8.3,
-      'popular': true,
-    },
-    {
-      'name': 'ПРЕМИУМ',
-      'attempts': 100,
-      'price': 699,
-      'perAttempt': 7.0,
-      'popular': false,
-    },
-  ];
-  
-  final List<Map<String, dynamic>> subscriptions = [
-    {
-      'name': 'БЕЗЛИМИТ',
-      'description': 'Неограниченно сравнений',
-      'price': 299,
-      'period': 'в месяц',
-      'popular': true,
-    },
-  ];
-
+class PurchaseScreen extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    final attemptService = Provider.of<AttemptServiceCloud>(context); // <-- ИЗМЕНИТЬ ТИП
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Пополните баланс'),
-        backgroundColor: Color(0xFF4FC3F7),
+  _PurchaseScreenState createState() => _PurchaseScreenState();
+}
+
+class _PurchaseScreenState extends State<PurchaseScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Инициализируем RevenueCat при открытии экрана
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final revenueCatService = context.read<RevenueCatService>();
+      if (!revenueCatService.isInitialized && !revenueCatService.isLoading) {
+        await revenueCatService.initialize();
+      }
+    });
+  }
+  
+  // В purchase_screen.dart, в методе build:
+@override
+Widget build(BuildContext context) {
+  // Используем watch, но с проверкой на null
+  final revenueCatService = context.watch<RevenueCatService?>();
+  
+  return Scaffold(
+    appBar: AppBar(
+      title: Text('Покупка попыток'),
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back),
+        onPressed: () => Navigator.pop(context),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Текущий баланс
-              Container(
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Color(0xFFE3F2FD),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.account_balance_wallet,
-                      color: Color(0xFF4FC3F7),
-                      size: 30,
-                    ),
-                    SizedBox(width: 15),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Ваш баланс:',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          Text(
-                            '${attemptService.totalAttempts} попыток',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF4FC3F7),
-                            ),
-                          ),
-                          if (attemptService.freeAttempts > 0 || attemptService.purchasedAttempts > 0)
-                            Padding(
-                              padding: EdgeInsets.only(top: 5),
-                              child: Row(
-                                children: [
-                                  if (attemptService.freeAttempts > 0)
-                                    Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      margin: EdgeInsets.only(right: 10),
-                                      decoration: BoxDecoration(
-                                        color: Colors.green[50],
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(color: Colors.green[100]!),
-                                      ),
-                                      child: Text(
-                                        'Бесплатные: ${attemptService.freeAttempts}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.green[800],
-                                        ),
-                                      ),
-                                    ),
-                                  if (attemptService.purchasedAttempts > 0)
-                                    Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue[50],
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(color: Colors.blue[100]!),
-                                      ),
-                                      child: Text(
-                                        'Купленные: ${attemptService.purchasedAttempts}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.blue[800],
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 30),
-              
-              // Бесплатные попытки
-              Container(
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.green[50],
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.green[100]!),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.card_giftcard, color: Colors.green),
-                    SizedBox(width: 15),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'БЕСПЛАТНО',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                          ),
-                          SizedBox(height: 5),
-                          Text(
-                            attemptService.freeAttempts > 0
-                                ? 'Осталось ${attemptService.freeAttempts} бесплатных попыток'
-                                : 'Бесплатные попытки использованы',
-                            style: TextStyle(color: Colors.green[800]),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      attemptService.freeAttempts > 0 
-                          ? Icons.card_giftcard 
-                          : Icons.check_circle,
-                      color: Colors.green,
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 40),
-              
-              // Пакеты попыток
-              Text(
-                'ПАКЕТЫ ПОПЫТОК',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF424242),
-                ),
-              ),
-              SizedBox(height: 20),
-              
-              // Пакет 1
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  side: BorderSide(color: Colors.grey[200]!),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
-                      Text(
-                        'МИНИ',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 10),
-                      Text(
-                        '10 сравнений',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Color(0xFF4FC3F7),
-                        ),
-                      ),
-                      SizedBox(height: 15),
-                      Text(
-                        '99 ₽',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text('9.9 ₽ / сравнение', style: TextStyle(color: Colors.grey)),
-                      SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: () {
-                          attemptService.addAttempts(10);
-                          print('Куплен пакет МИНИ');
-                          Navigator.pop(context); // Вернуться назад
-                        },
-                        child: Text('КУПИТЬ'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF4FC3F7),
-                          foregroundColor: Colors.white,
-                          minimumSize: Size(double.infinity, 50),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(height: 20),
-              
-              // Пакет 2 (рекомендуемый)
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  side: BorderSide(color: Color(0xFFFF8A65), width: 2),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: Color(0xFFFF8A65),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          'САМЫЙ ВЫГОДНЫЙ',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 10),
-                      Text(
-                        'СТАНДАРТ',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 10),
-                      Text(
-                        '30 сравнений',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Color(0xFF4FC3F7),
-                        ),
-                      ),
-                      SizedBox(height: 15),
-                      Text(
-                        '249 ₽',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text('8.3 ₽ / сравнение', style: TextStyle(color: Colors.grey)),
-                      SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: () {
-                          attemptService.addAttempts(30);
-                          print('Куплен пакет СТАНДАРТ');
-                          Navigator.pop(context);
-                        },
-                        child: Text('КУПИТЬ'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF4FC3F7),
-                          foregroundColor: Colors.white,
-                          minimumSize: Size(double.infinity, 50),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(height: 20),
-              
-              // Пакет 3
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  side: BorderSide(color: Colors.grey[200]!),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
-                      Text(
-                        'ПРЕМИУМ',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 10),
-                      Text(
-                        '100 сравнений',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Color(0xFF4FC3F7),
-                        ),
-                      ),
-                      SizedBox(height: 15),
-                      Text(
-                        '699 ₽',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text('7.0 ₽ / сравнение', style: TextStyle(color: Colors.grey)),
-                      SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: () {
-                          attemptService.addAttempts(100);
-                          print('Куплен пакет ПРЕМИУМ');
-                          Navigator.pop(context);
-                        },
-                        child: Text('КУПИТЬ'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF4FC3F7),
-                          foregroundColor: Colors.white,
-                          minimumSize: Size(double.infinity, 50),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(height: 40),
-              
-              // Подписка
-              Text(
-                'ПОДПИСКА',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF424242),
-                ),
-              ),
-              SizedBox(height: 20),
-              
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  side: BorderSide(color: Colors.purple[200]!, width: 2),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.star, color: Colors.purple),
-                          SizedBox(width: 10),
-                          Text(
-                            'БЕЗЛИМИТ',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.purple,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 15),
-                      Text(
-                        'Неограниченно сравнений',
-                        style: TextStyle(fontSize: 16),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 20),
-                      Text(
-                        '299 ₽',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.purple,
-                        ),
-                      ),
-                      Text('в месяц', style: TextStyle(color: Colors.grey)),
-                      SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: () {
-                          print('Оформлена подписка БЕЗЛИМИТ');
-                          // Для подписки сбросим счетчик и будем считать что безлимит
-                          attemptService.addAttempts(999, isPurchased: true);
-                          Navigator.pop(context);
-                        },
-                        child: Text('ПОДПИСАТЬСЯ'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple,
-                          foregroundColor: Colors.white,
-                          minimumSize: Size(double.infinity, 50),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              
-              SizedBox(height: 30),
-              Text(
-                '• Тестовый режим - попытки добавляются без оплаты\n• В продакшене будет интеграция с App Store / Google Play',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-            ],
+    ),
+    body: revenueCatService == null 
+        ? _buildLoading() 
+        : _buildBody(revenueCatService),
+  );
+}
+
+Widget _buildLoading() {
+  return Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        CircularProgressIndicator(),
+        SizedBox(height: 20),
+        Text('Загрузка сервиса покупок...'),
+      ],
+    ),
+  );
+}
+  
+  Widget _buildBody(RevenueCatService service) {
+    if (service.isLoading && !service.isInitialized) {
+      return Center(child: CircularProgressIndicator());
+    }
+    
+    if (!service.isInitialized) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error, size: 50, color: Colors.orange),
+            SizedBox(height: 20),
+            Text('RevenueCat не инициализирован'),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => service.initialize(),
+              child: Text('Повторить'),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    final packages = service.availablePackages;
+    
+    if (packages.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.shopping_cart, size: 50, color: Colors.grey),
+            SizedBox(height: 20),
+            Text('Нет доступных пакетов'),
+            Text('Настройте продукты в RevenueCat', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+    
+    return ListView(
+      padding: EdgeInsets.all(16),
+      children: [
+        // Заголовок
+        _buildHeader(),
+        SizedBox(height: 20),
+        
+        // Список пакетов
+        ...packages.map((package) => 
+          _buildPackageCard(package, service)
+        ).toList(),
+        
+        SizedBox(height: 30),
+        
+        // Кнопка восстановления покупок
+        _buildRestoreButton(service),
+        
+        SizedBox(height: 20),
+        
+        // Информация
+        _buildInfoCard(),
+      ],
+    );
+  }
+  
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Выберите пакет попыток',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
           ),
+        ),
+        SizedBox(height: 8),
+        Text(
+          'Каждое сравнение расходует 1 попытку',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildPackageCard(Package package, RevenueCatService service) {
+    // Используем правильные свойства Package
+    final product = package.storeProduct; // ИЛИ package.product в зависимости от версии
+    
+    return Card(
+      margin: EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Заголовок и цена
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    _getPackageTitle(package.identifier),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Text(
+                  product.priceString,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+              ],
+            ),
+            
+            SizedBox(height: 8),
+            
+            // Описание
+            Text(
+              _getPackageDescription(package.identifier),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+            
+            SizedBox(height: 16),
+            
+            // Кнопка покупки
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _purchasePackage(package, service),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: Text(
+                  'Купить',
+                  style: TextStyle(fontSize: 16),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+  
+  // Методы для получения названий и описаний
+  String _getPackageTitle(String identifier) {
+    switch (identifier) {
+      case 'mini_pack':
+        return 'Мини-пакет (10 попыток)';
+      case 'standard_pack':
+        return 'Стандартный пакет (30 попыток)';
+      case 'premium_pack':
+        return 'Премиум-пакет (100 попыток)';
+      default:
+        return identifier;
+    }
+  }
+  
+  String _getPackageDescription(String identifier) {
+    switch (identifier) {
+      case 'mini_pack':
+        return '10 попыток сравнения лиц';
+      case 'standard_pack':
+        return '30 попыток сравнения лиц';
+      case 'premium_pack':
+        return '100 попыток сравнения лиц';
+      default:
+        return 'Пакет попыток для сравнения';
+    }
+  }
+  
+  Widget _buildRestoreButton(RevenueCatService service) {
+    return OutlinedButton(
+      onPressed: () => _restorePurchases(service),
+      style: OutlinedButton.styleFrom(
+        padding: EdgeInsets.symmetric(vertical: 16),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.restore, size: 20),
+          SizedBox(width: 8),
+          Text(
+            'Восстановить покупки',
+            style: TextStyle(fontSize: 16),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildInfoCard() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'ℹ️ Информация',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            '• Покупки привязаны к вашему аккаунту в магазине приложений\n'
+            '• Нажмите "Восстановить покупки" если попытки не появились\n'
+            '• Для отмены подписки обратитесь в магазин приложений',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Future<void> _purchasePackage(Package package, RevenueCatService service) async {
+  try {
+    final success = await service.purchasePackage(package); // Передаем Package
+    
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Покупка успешна!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      
+      Future.delayed(Duration(seconds: 2), () {
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+      });
+      
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Покупка не завершена'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+    
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Ошибка: ${e.toString()}'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
+  
+  Future<void> _restorePurchases(RevenueCatService service) async {
+    final success = await service.restorePurchases();
+    
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Покупки восстановлены!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Не найдено активных покупок'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
   }
 }

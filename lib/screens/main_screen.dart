@@ -4,6 +4,7 @@ import '../services/attempt_service_cloud.dart'; // <-- ИЗМЕНИТЬ ИМП�
 import 'photo_upload_screen.dart';
 import 'purchase_screen.dart';
 import '../widgets/attempt_counter.dart';
+import 'purchase_screen.dart'; // если еще нет
 
 class MainScreen extends StatelessWidget {
   @override
