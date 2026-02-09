@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'device_info_service.dart';
 
 class FirebaseService with ChangeNotifier {
   bool _initialized = false;
@@ -134,32 +135,51 @@ Future<void> addPurchasedAttempts(int attemptsToAdd) async {
   }
   
   // Метод 2: Создание записи баланса если ее нет
-  Future<void> _ensureBalanceRecord() async {
-    if (_deviceId == null) return;
+  // Метод 2: Создание записи баланса если ее нет
+Future<void> _ensureBalanceRecord() async {
+  if (_deviceId == null) return;
+  
+  try {
+    final docRef = _firestore.collection('balances').doc(_deviceId!);
+    final doc = await docRef.get();
     
-    try {
-      final docRef = _firestore.collection('balances').doc(_deviceId!);
-      final doc = await docRef.get();
+    if (!doc.exists) {
+      // Получаем информацию об устройстве
+      final deviceInfo = await DeviceInfoService.getSimpleDeviceInfo();
+      final fullDeviceInfo = await DeviceInfoService.getDeviceInfo();
       
-      if (!doc.exists) {
-        await docRef.set({
-          'freeAttempts': 3,
-          'purchasedAttempts': 0,
-          'createdAt': FieldValue.serverTimestamp(),
-          'lastUpdated': FieldValue.serverTimestamp(),
-          'deviceInfo': {
-            'platform': kIsWeb ? 'web' : 'mobile',
-            'created': DateTime.now().toIso8601String(),
-          }
-        });
-        if (kDebugMode) print('✅ Created new balance record for $_deviceId');
-      } else {
-        if (kDebugMode) print('📄 Balance record exists for $_deviceId');
-      }
-    } catch (e) {
-      if (kDebugMode) print('❌ Error ensuring balance record: $e');
+      await docRef.set({
+        'freeAttempts': 3,
+        'purchasedAttempts': 0,
+        'createdAt': FieldValue.serverTimestamp(),
+        'lastUpdated': FieldValue.serverTimestamp(),
+        'deviceInfo': {
+          'platform': kIsWeb ? 'web' : 'mobile',
+          'created': DateTime.now().toIso8601String(),
+          // Добавляем детальную информацию об устройстве
+          ...deviceInfo,
+        },
+        'deviceInfoFull': fullDeviceInfo, // Полная информация
+        'appVersion': '1.0.0', // Версия приложения
+        'firstLaunch': true,
+      });
+      if (kDebugMode) print('✅ Created new balance record for $_deviceId');
+    } else {
+      // Обновляем информацию об устройстве при каждом запуске
+      final deviceInfo = await DeviceInfoService.getSimpleDeviceInfo();
+      
+      await docRef.update({
+        'lastUpdated': FieldValue.serverTimestamp(),
+        'deviceInfo': FieldValue.arrayUnion([deviceInfo]),
+        'appLaunches': FieldValue.increment(1),
+      });
+      
+      if (kDebugMode) print('📄 Balance record exists for $_deviceId, device info updated');
     }
+  } catch (e) {
+    if (kDebugMode) print('❌ Error ensuring balance record: $e');
   }
+}
   
   // Метод 3: Загрузка баланса (ОСНОВНОЙ)
   Future<Map<String, int>> loadAttemptBalance() async {

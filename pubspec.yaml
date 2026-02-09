@@ -37,6 +37,8 @@ dependencies:
   firebase_core: ^4.4.0
   cloud_firestore: ^6.1.2
 
+  device_info_plus: ^9.0.0  # Добавьте эту строку
+
   # Для сохранения состояния
   shared_preferences: ^2.2.2
   provider: ^6.1.1
