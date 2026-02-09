@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/attempt_service_cloud.dart'; // <-- ИЗМЕНИТЬ ИМПОРТ
+import '../services/firebase_service.dart';
+import 'package:flutter/foundation.dart';
 
 class PurchaseScreen extends StatelessWidget {
   final List<Map<String, dynamic>> packages = [
@@ -26,7 +28,7 @@ class PurchaseScreen extends StatelessWidget {
       'popular': false,
     },
   ];
-  
+
   final List<Map<String, dynamic>> subscriptions = [
     {
       'name': 'БЕЗЛИМИТ',
@@ -39,8 +41,10 @@ class PurchaseScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final attemptService = Provider.of<AttemptServiceCloud>(context); // <-- ИЗМЕНИТЬ ТИП
-    
+    final attemptService = Provider.of<AttemptServiceCloud>(
+      context,
+    ); // <-- ИЗМЕНИТЬ ТИП
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Пополните баланс'),
@@ -86,19 +90,25 @@ class PurchaseScreen extends StatelessWidget {
                               color: Color(0xFF4FC3F7),
                             ),
                           ),
-                          if (attemptService.freeAttempts > 0 || attemptService.purchasedAttempts > 0)
+                          if (attemptService.freeAttempts > 0 ||
+                              attemptService.purchasedAttempts > 0)
                             Padding(
                               padding: EdgeInsets.only(top: 5),
                               child: Row(
                                 children: [
                                   if (attemptService.freeAttempts > 0)
                                     Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
                                       margin: EdgeInsets.only(right: 10),
                                       decoration: BoxDecoration(
                                         color: Colors.green[50],
                                         borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(color: Colors.green[100]!),
+                                        border: Border.all(
+                                          color: Colors.green[100]!,
+                                        ),
                                       ),
                                       child: Text(
                                         'Бесплатные: ${attemptService.freeAttempts}',
@@ -110,11 +120,16 @@ class PurchaseScreen extends StatelessWidget {
                                     ),
                                   if (attemptService.purchasedAttempts > 0)
                                     Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: Colors.blue[50],
                                         borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(color: Colors.blue[100]!),
+                                        border: Border.all(
+                                          color: Colors.blue[100]!,
+                                        ),
                                       ),
                                       child: Text(
                                         'Купленные: ${attemptService.purchasedAttempts}',
@@ -134,7 +149,7 @@ class PurchaseScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 30),
-              
+
               // Бесплатные попытки
               Container(
                 padding: EdgeInsets.all(20),
@@ -169,8 +184,8 @@ class PurchaseScreen extends StatelessWidget {
                       ),
                     ),
                     Icon(
-                      attemptService.freeAttempts > 0 
-                          ? Icons.card_giftcard 
+                      attemptService.freeAttempts > 0
+                          ? Icons.card_giftcard
                           : Icons.check_circle,
                       color: Colors.green,
                     ),
@@ -178,7 +193,7 @@ class PurchaseScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 40),
-              
+
               // Пакеты попыток
               Text(
                 'ПАКЕТЫ ПОПЫТОК',
@@ -189,7 +204,7 @@ class PurchaseScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 20),
-              
+
               // Пакет 1
               Card(
                 elevation: 2,
@@ -224,13 +239,16 @@ class PurchaseScreen extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Text('9.9 ₽ / сравнение', style: TextStyle(color: Colors.grey)),
+                      Text(
+                        '9.9 ₽ / сравнение',
+                        style: TextStyle(color: Colors.grey),
+                      ),
                       SizedBox(height: 20),
                       ElevatedButton(
-                        onPressed: () {
-                          attemptService.addAttempts(10);
+                        onPressed: () async {
+                          await attemptService.addAttempts(10);
                           print('Куплен пакет МИНИ');
-                          Navigator.pop(context); // Вернуться назад
+                          Navigator.pop(context);
                         },
                         child: Text('КУПИТЬ'),
                         style: ElevatedButton.styleFrom(
@@ -244,7 +262,7 @@ class PurchaseScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 20),
-              
+
               // Пакет 2 (рекомендуемый)
               Card(
                 elevation: 4,
@@ -257,7 +275,10 @@ class PurchaseScreen extends StatelessWidget {
                   child: Column(
                     children: [
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: Color(0xFFFF8A65),
                           borderRadius: BorderRadius.circular(20),
@@ -295,11 +316,14 @@ class PurchaseScreen extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Text('8.3 ₽ / сравнение', style: TextStyle(color: Colors.grey)),
+                      Text(
+                        '8.3 ₽ / сравнение',
+                        style: TextStyle(color: Colors.grey),
+                      ),
                       SizedBox(height: 20),
                       ElevatedButton(
-                        onPressed: () {
-                          attemptService.addAttempts(30);
+                        onPressed: () async {
+                          await attemptService.addAttempts(30);
                           print('Куплен пакет СТАНДАРТ');
                           Navigator.pop(context);
                         },
@@ -315,7 +339,7 @@ class PurchaseScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 20),
-              
+
               // Пакет 3
               Card(
                 elevation: 2,
@@ -350,11 +374,14 @@ class PurchaseScreen extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Text('7.0 ₽ / сравнение', style: TextStyle(color: Colors.grey)),
+                      Text(
+                        '7.0 ₽ / сравнение',
+                        style: TextStyle(color: Colors.grey),
+                      ),
                       SizedBox(height: 20),
                       ElevatedButton(
-                        onPressed: () {
-                          attemptService.addAttempts(100);
+                        onPressed: () async {
+                          await attemptService.addAttempts(100);
                           print('Куплен пакет ПРЕМИУМ');
                           Navigator.pop(context);
                         },
@@ -370,7 +397,7 @@ class PurchaseScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 40),
-              
+
               // Подписка
               Text(
                 'ПОДПИСКА',
@@ -381,7 +408,7 @@ class PurchaseScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 20),
-              
+
               Card(
                 elevation: 4,
                 shape: RoundedRectangleBorder(
@@ -424,10 +451,13 @@ class PurchaseScreen extends StatelessWidget {
                       Text('в месяц', style: TextStyle(color: Colors.grey)),
                       SizedBox(height: 20),
                       ElevatedButton(
-                        onPressed: () {
-                          print('Оформлена подписка БЕЗЛИМИТ');
+                        onPressed: () async {
                           // Для подписки сбросим счетчик и будем считать что безлимит
-                          attemptService.addAttempts(999, isPurchased: true);
+                          await attemptService.addAttempts(
+                            999,
+                            isPurchased: true,
+                          );
+                          print('Оформлена подписка БЕЗЛИМИТ');
                           Navigator.pop(context);
                         },
                         child: Text('ПОДПИСАТЬСЯ'),
@@ -441,7 +471,7 @@ class PurchaseScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               SizedBox(height: 30),
               Text(
                 '• Тестовый режим - попытки добавляются без оплаты\n• В продакшене будет интеграция с App Store / Google Play',
