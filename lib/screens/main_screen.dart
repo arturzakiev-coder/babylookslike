@@ -62,23 +62,23 @@ class MainScreen extends StatelessWidget {
             SizedBox(height: 20),
             
             // Вторичная кнопка
-            ElevatedButton.icon(
-              onPressed: () {
-                print('Сравнить двух людей');
-              },
-              icon: Icon(Icons.people, size: 28),
-              label: Text(
-                'Сравнить двух людей',
-                style: TextStyle(fontSize: 18),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFFFF8A65),
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-                minimumSize: Size(double.infinity, 70),
-              ),
-            ),
-            SizedBox(height: 40),
+           // ElevatedButton.icon(
+             // onPressed: () {
+              //  print('Сравнить двух людей');
+              //},
+              //icon: Icon(Icons.people, size: 28),
+              //label: Text(
+                //'Сравнить двух людей',
+                //style: TextStyle(fontSize: 18),
+              //),
+              //style: ElevatedButton.styleFrom(
+               // backgroundColor: Color(0xFFFF8A65),
+                //foregroundColor: Colors.white,
+                //padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+                //minimumSize: Size(double.infinity, 70),
+              //),
+            //),
+            //SizedBox(height: 40),
             
             // Кнопка магазина
             OutlinedButton.icon(

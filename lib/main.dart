@@ -12,6 +12,9 @@ import 'screens/purchase_screen.dart';
 import 'firebase_config.dart';
 
 void main() async {
+
+    // Отключаем проверку типа Provider
+  Provider.debugCheckInvalidValueType = null;
   WidgetsFlutterBinding.ensureInitialized();
 
   print('=== APPLICATION STARTING ===');
@@ -67,6 +70,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        // Добавляем FirebaseService в провайдеры
+        Provider<FirebaseService>.value(value: firebaseService),
+        
         ChangeNotifierProvider(
           create: (_) {
             final attemptService = AttemptServiceCloud(firebaseService);
