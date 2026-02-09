@@ -5,12 +5,15 @@ import 'photo_upload_screen.dart';
 import 'purchase_screen.dart';
 import '../widgets/attempt_counter.dart';
 //import 'purchase_screen.dart'; // если еще нет
+import 'contact_us_screen.dart';
 
 class MainScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final attemptService = Provider.of<AttemptServiceCloud>(context); // <-- ИЗМЕНИТЬ ТИП
-    
+    final attemptService = Provider.of<AttemptServiceCloud>(
+      context,
+    ); // <-- ИЗМЕНИТЬ ТИП
+
     return Scaffold(
       appBar: AppBar(
         title: Text('На кого похож малыш?'),
@@ -23,11 +26,11 @@ class MainScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             SizedBox(height: 40),
-            
+
             // Счетчик попыток
             AttemptCounter(attempts: attemptService.totalAttempts),
             SizedBox(height: 40),
-            
+
             // Основная кнопка
             ElevatedButton.icon(
               onPressed: () {
@@ -41,9 +44,7 @@ class MainScreen extends StatelessWidget {
                 } else {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => PurchaseScreen(),
-                    ),
+                    MaterialPageRoute(builder: (context) => PurchaseScreen()),
                   );
                 }
               },
@@ -60,34 +61,32 @@ class MainScreen extends StatelessWidget {
               ),
             ),
             SizedBox(height: 20),
-            
+
             // Вторичная кнопка
-           // ElevatedButton.icon(
-             // onPressed: () {
-              //  print('Сравнить двух людей');
-              //},
-              //icon: Icon(Icons.people, size: 28),
-              //label: Text(
-                //'Сравнить двух людей',
-                //style: TextStyle(fontSize: 18),
-              //),
-              //style: ElevatedButton.styleFrom(
-               // backgroundColor: Color(0xFFFF8A65),
-                //foregroundColor: Colors.white,
-                //padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-                //minimumSize: Size(double.infinity, 70),
-              //),
+            // ElevatedButton.icon(
+            // onPressed: () {
+            //  print('Сравнить двух людей');
+            //},
+            //icon: Icon(Icons.people, size: 28),
+            //label: Text(
+            //'Сравнить двух людей',
+            //style: TextStyle(fontSize: 18),
+            //),
+            //style: ElevatedButton.styleFrom(
+            // backgroundColor: Color(0xFFFF8A65),
+            //foregroundColor: Colors.white,
+            //padding: EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+            //minimumSize: Size(double.infinity, 70),
+            //),
             //),
             //SizedBox(height: 40),
-            
+
             // Кнопка магазина
             OutlinedButton.icon(
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => PurchaseScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => PurchaseScreen()),
                 );
               },
               icon: Icon(Icons.shopping_cart),
@@ -96,6 +95,22 @@ class MainScreen extends StatelessWidget {
                 side: BorderSide(color: Color(0xFF4FC3F7)),
                 foregroundColor: Color(0xFF4FC3F7),
                 padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+              ),
+            ),
+            SizedBox(height: 15),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ContactUsScreen()),
+                );
+              },
+              icon: Icon(Icons.contact_support),
+              label: Text('Связаться с нами'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey[200],
+                foregroundColor: Colors.grey[800],
+                minimumSize: Size(double.infinity, 50),
               ),
             ),
           ],
