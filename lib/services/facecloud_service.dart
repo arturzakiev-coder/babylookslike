@@ -230,7 +230,47 @@ class FaceCloudService {
           print('Response: ${response.body}');
         }
         
-        return _getMockComparisonResultWithError('API Error ${response.statusCode}');
+        // Парсим сообщение об ошибке из ответа
+  String errorMessage = 'API Error ${response.statusCode}';
+  String? errorType;
+  String? failedImage;
+  
+  try {
+    final errorData = json.decode(response.body);
+    if (errorData is Map) {
+      if (errorData.containsKey('message')) {
+        errorMessage = errorData['message'].toString();
+        
+        // Определяем на каком изображении проблема
+        if (errorMessage.contains('image1')) {
+          failedImage = 'image1';
+          errorType = 'no_face_found';
+        } else if (errorMessage.contains('image2')) {
+          failedImage = 'image2';
+          errorType = 'no_face_found';
+        } else if (errorMessage.contains('no faces found')) {
+          errorType = 'no_face_found';
+        }
+      }
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print('Could not parse error response: $e');
+    }
+  }
+  
+  return {
+    'score': 0.0,
+    'success': false,
+    'isMock': false,
+    'isRealApi': true,
+    'api_error': true,
+    'error': errorMessage,
+    'error_type': errorType,
+    'failed_image': failedImage,
+    'status_code': response.statusCode,
+    'timestamp': DateTime.now().toIso8601String(),
+  };
       }
     } catch (e) {
       if (kDebugMode) {

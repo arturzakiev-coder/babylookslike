@@ -2,8 +2,10 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'results_screen.dart';
 import '../services/facecloud_service.dart';
+import '../services/attempt_service_cloud.dart';
 
 class ProcessingScreen extends StatefulWidget {
   final List<XFile?> photoFiles;
@@ -52,6 +54,10 @@ class _ProcessingScreenState extends State<ProcessingScreen>
   }
 
   Future<void> _startProcessing() async {
+    // Получаем сервис попыток
+    final attemptService = Provider.of<AttemptServiceCloud>(context, listen: false);
+    bool attemptUsed = false;
+    
     try {
       // 1. Инициализируем сервис FaceCloud
       setState(() => _currentMessageIndex = 0);
@@ -107,7 +113,27 @@ class _ProcessingScreenState extends State<ProcessingScreen>
       setState(() => _currentMessageIndex = 4);
       await Future.delayed(Duration(milliseconds: 500));
       
-      if (motherComparison != null && fatherComparison != null) {
+      // Проверяем успешность обоих сравнений
+      final bool isMotherSuccessful = motherComparison['success'] == true;
+      final bool isFatherSuccessful = fatherComparison['success'] == true;
+
+      if (kDebugMode) {
+        print('📊 Mother comparison success: $isMotherSuccessful');
+        print('📊 Father comparison success: $isFatherSuccessful');
+        print('📊 Mother error: ${motherComparison['error']}');
+        print('📊 Father error: ${fatherComparison['error']}');
+      }
+
+      // Если ОБА сравнения успешны
+      if (isMotherSuccessful && isFatherSuccessful) {
+        // ВАЖНО: Списание попытки происходит ТОЛЬКО здесь, если оба сравнения успешны
+        final canProceed = await attemptService.useAttempt();
+        if (!canProceed) {
+          // Если по какой-то причине не удалось списать попытку
+          throw Exception('Не удалось списать попытку. Пожалуйста, попробуйте снова.');
+        }
+        attemptUsed = true;
+        
         final results = _prepareResults(
           motherComparison, 
           fatherComparison,
@@ -117,7 +143,17 @@ class _ProcessingScreenState extends State<ProcessingScreen>
           _navigateToResults(results);
         }
       } else {
-        throw Exception('Не удалось получить результаты сравнения');
+        // Если хотя бы одно сравнение неуспешно, НЕ списываем попытку
+        // и показываем ошибку пользователю
+        if (kDebugMode) {
+          print('⚠️ API returned errors, NOT deducting attempt');
+        }
+        
+        // Показываем понятную ошибку пользователю
+        if (mounted) {
+          _showApiError(motherComparison, fatherComparison);
+        }
+        return; // ВАЖНО: Прекращаем выполнение
       }
     } catch (e) {
       if (kDebugMode) {
@@ -125,8 +161,29 @@ class _ProcessingScreenState extends State<ProcessingScreen>
       }
       
       if (mounted) {
-        // В случае ошибки показываем тестовые результаты
-        _showTestResults();
+        // Если попытка была списана, но произошла ошибка
+        if (attemptUsed) {
+          _showErrorWithRetry('Ошибка обработки: $e');
+        } else {
+          // Если попытка НЕ была списана, показываем общую ошибку
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              title: Text('Ошибка', style: TextStyle(color: Colors.red)),
+              content: Text('Произошла ошибка при обработке. Попробуйте еще раз.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Закрыть диалог
+                    Navigator.pop(context); // Вернуться к загрузке фото
+                  },
+                  child: Text('Вернуться', style: TextStyle(color: Color(0xFF4FC3F7))),
+                ),
+              ],
+            ),
+          );
+        }
       }
     }
   }
@@ -135,9 +192,18 @@ class _ProcessingScreenState extends State<ProcessingScreen>
   Map<String, dynamic> motherComparison,
   Map<String, dynamic> fatherComparison,
 ) {
+  if (kDebugMode) {
+    print('🚨 _prepareResults called!');
+    print('   Mother success: ${motherComparison['success']}');
+    print('   Father success: ${fatherComparison['success']}');
+    print('   Stack trace:');
+    print(StackTrace.current);
+  }
+  
   final motherScore = motherComparison['score'] ?? 0.5;
   final fatherScore = fatherComparison['score'] ?? 0.5;
-  final isRealApi = motherComparison['isRealApi'] == true;
+  final isRealApi = motherComparison['isRealApi'] == true && 
+                   fatherComparison['isRealApi'] == true;
   final hasApiError = motherComparison['api_error'] == true || 
                      fatherComparison['api_error'] == true;
   
@@ -179,23 +245,113 @@ class _ProcessingScreenState extends State<ProcessingScreen>
     };
   }
   
-  void _showTestResults() {
-    final results = {
-      'mother': 0.68,
-      'father': 0.42,
-      'details': {
-        'Глаза': 0.72,
-        'Нос': 0.55,
-        'Рот': 0.70,
-        'Форма лица': 0.65,
-      },
-      'isRealApi': false,
-      'hasApiError': false,
-      'metadata': {},
-    };
+  void _showApiError(Map<String, dynamic> motherComparison, Map<String, dynamic> fatherComparison) {
+  String errorMessage = 'Не удалось сравнить лица';
+  String detailedMessage = '';
+  int stepToReturn = 0; // 0 - малыш, 1 - мама, 2 - папа
+  
+  // Проверяем ошибки в обоих сравнениях
+  bool motherHasError = motherComparison['success'] == false;
+  bool fatherHasError = fatherComparison['success'] == false;
+  
+  if (motherHasError && fatherHasError) {
+    // Ошибки в обоих сравнениях - вероятно проблема с малышом
+    errorMessage = 'Не удалось распознать лица';
+    detailedMessage = 'Проверьте качество фото малыша. Убедитесь, что лицо хорошо видно.';
+    stepToReturn = 0; // Возвращаем к фото малыша
+  } else if (motherHasError) {
+    // Ошибка только в сравнении с мамой
+    final errorType = motherComparison['error_type'];
+    final failedImage = motherComparison['failed_image'];
     
-    _navigateToResults(results);
+    if (errorType == 'no_face_found') {
+      if (failedImage == 'image1') {
+        errorMessage = 'Не найдено лицо на фото малыша';
+        detailedMessage = 'Пожалуйста, загрузите фото малыша, где хорошо видно лицо.';
+        stepToReturn = 0; // Возвращаем к фото малыша
+      } else if (failedImage == 'image2') {
+        errorMessage = 'Не найдено лицо на фото мамы';
+        detailedMessage = 'Пожалуйста, загрузите фото мамы, где хорошо видно лицо.';
+        stepToReturn = 1; // Возвращаем к фото мамы
+      } else {
+        errorMessage = 'Не найдено лицо на фото мамы или малыша';
+        detailedMessage = 'Проверьте, что на фото видны лица.';
+        stepToReturn = 0; // По умолчанию возвращаем к малышу
+      }
+    } else {
+      errorMessage = motherComparison['error']?.toString() ?? 'Ошибка сравнения с мамой';
+      stepToReturn = 0; // По умолчанию возвращаем к малышу
+    }
+  } else if (fatherHasError) {
+    // Ошибка только в сравнении с папой
+    final errorType = fatherComparison['error_type'];
+    final failedImage = fatherComparison['failed_image'];
+    
+    if (errorType == 'no_face_found') {
+      if (failedImage == 'image1') {
+        errorMessage = 'Не найдено лицо на фото малыша';
+        detailedMessage = 'Пожалуйста, загрузите фото малыша, где хорошо видно лицо.';
+        stepToReturn = 0; // Возвращаем к фото малыша
+      } else if (failedImage == 'image2') {
+        errorMessage = 'Не найдено лицо на фото папы';
+        detailedMessage = 'Пожалуйста, загрузите фото папы, где хорошо видно лицо.';
+        stepToReturn = 2; // Возвращаем к фото папы
+      } else {
+        errorMessage = 'Не найдено лицо на фото папы или малыша';
+        detailedMessage = 'Проверьте, что на фото видны лица.';
+        stepToReturn = 0; // По умолчанию возвращаем к малышу
+      }
+    } else {
+      errorMessage = fatherComparison['error']?.toString() ?? 'Ошибка сравнения с папой';
+      stepToReturn = 0; // По умолчанию возвращаем к малышу
+    }
   }
+  
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      title: Text('Ошибка', style: TextStyle(color: Colors.red)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(errorMessage, style: TextStyle(fontSize: 16)),
+          if (detailedMessage.isNotEmpty) ...[
+            SizedBox(height: 10),
+            Text(detailedMessage, style: TextStyle(color: Colors.grey[600])),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            // Закрываем диалог
+            Navigator.of(context).pop();
+          },
+          child: Text('OK', style: TextStyle(color: Color(0xFF4FC3F7))),
+        ),
+      ],
+    ),
+  ).then((_) {
+    // После закрытия диалога возвращаемся на нужный шаг загрузки фото
+    if (mounted) {
+      _returnToPhotoUploadScreen(stepToReturn);
+    }
+  });
+}
+  void _returnToPhotoUploadScreen(int stepToReturn) {
+  // Создаем объект с результатами для передачи обратно
+  final result = {
+    'error_step': stepToReturn,
+    // Передаем только пути и имена, так как XFile не сериализуем
+    'photo_paths': widget.photoFiles.map((file) => file?.path).toList(),
+    'photo_names': widget.photoNames,
+  };
+  
+  // Возвращаемся на предыдущий экран с результатом
+  Navigator.of(context).pop(result);
+}
   
   void _navigateToResults(Map<String, dynamic> results) {
     Navigator.pushReplacement(
@@ -205,6 +361,30 @@ class _ProcessingScreenState extends State<ProcessingScreen>
           results: results,
           photoFiles: widget.photoFiles,
         ),
+      ),
+    );
+  }
+
+  void _showErrorWithRetry(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Ошибка'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Попробовать снова
+              _startProcessing();
+            },
+            child: Text('Повторить'),
+          ),
+        ],
       ),
     );
   }
